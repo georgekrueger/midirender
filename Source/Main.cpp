@@ -38,6 +38,7 @@ int main (int argc, char* argv[])
 		const juce::MidiMessageSequence* msgSeq = midiFile.getTrack(i);
 
 		String plugFile = "";
+		int program = 0;
 		for (int j = 0; j < msgSeq->getNumEvents(); ++j)
 		{
 			juce::MidiMessageSequence::MidiEventHolder* midiEventHolder = msgSeq->getEventPointer(j);
@@ -48,6 +49,9 @@ int main (int argc, char* argv[])
 				const juce::uint8* instrChars = midiMsg.getMetaEventData();
 				String instrName((char*)instrChars, instrLength);
 				plugFile = instrName;
+			}
+			else if (midiMsg.isProgramChange()) {
+				program = midiMsg.getProgramChangeNumber();
 			}
 		}
 
@@ -73,6 +77,8 @@ int main (int argc, char* argv[])
 				cout << "Failed to load plugin " << plugFile << endl;
 				continue;
 			}
+
+			plugInst->setCurrentProgram(program);
 
 			int numInputChannels = plugInst->getTotalNumInputChannels();
 			int numOutputChannels = plugInst->getTotalNumOutputChannels();
