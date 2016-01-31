@@ -35,10 +35,31 @@ int main (int argc, char* argv[])
 
 	for (int i = 0; i < numTracks; ++i)
 	{
-		const MidiMessageSequence* msgSeq = midiFile.getTrack(i);
+		const juce::MidiMessageSequence* msgSeq = midiFile.getTrack(i);
+
+		String plugFile = "";
+		for (int j = 0; j < msgSeq->getNumEvents(); ++j)
+		{
+			juce::MidiMessageSequence::MidiEventHolder* midiEventHolder = msgSeq->getEventPointer(j);
+			juce::MidiMessage midiMsg = midiEventHolder->message;
+			if (midiMsg.isMetaEvent() && midiMsg.getMetaEventType() == 0x04) {
+				// Instrument meta event
+				int instrLength = midiMsg.getMetaEventLength();
+				const juce::uint8* instrChars = midiMsg.getMetaEventData();
+				String instrName((char*)instrChars, instrLength);
+				plugFile = instrName;
+			}
+		}
+
+		if (plugFile.isEmpty()) {
+			std::cerr << "Skipping track " << i << ". No instrument found." << std::endl;
+			continue;
+		}
+		else {
+			std::cout << "Found instrument '" << plugFile << "' for track " << i << std::endl;
+		}
 
 		OwnedArray<PluginDescription> results;
-		String plugFile = "C:\\VST\\FMMF.dll";
 		VSTPluginFormat vstFormat;
 		vstFormat.findAllTypesForFile(results, plugFile);
 		if (results.size() > 0) {
