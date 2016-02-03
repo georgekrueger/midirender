@@ -72,7 +72,7 @@ int main (int argc, char* argv[])
 			int secsToRender = 10;
 			double sampleRate = 44100;
 			int totalSizeInSamples = static_cast<int>(44100 * secsToRender);
-			AudioPluginInstance* plugInst = vstFormat.createInstanceFromDescription(*results[0], sampleRate, totalSizeInSamples);
+			juce::AudioPluginInstance* plugInst = vstFormat.createInstanceFromDescription(*results[0], sampleRate, totalSizeInSamples);
 			if (!plugInst) {
 				cout << "Failed to load plugin " << plugFile << endl;
 				continue;
@@ -82,8 +82,10 @@ int main (int argc, char* argv[])
 
 			int numInputChannels = plugInst->getTotalNumInputChannels();
 			int numOutputChannels = plugInst->getTotalNumOutputChannels();
-			cout << "Plugin input channels: " << numInputChannels << " output channels: " << numOutputChannels
-				<< " Current program: " << plugInst->getCurrentProgram() << endl;
+			cout << "----- Plugin Information -----" << endl;
+			cout << "Input channels : " << numInputChannels << endl;
+			cout << "Output channels : " << numOutputChannels << endl;
+			cout << "Current program: " << plugInst->getCurrentProgram() << endl;
 
 			int maxChannels = std::max(numInputChannels, numOutputChannels);
 			AudioBuffer<float> buffer(maxChannels, totalSizeInSamples);
@@ -98,6 +100,18 @@ int main (int argc, char* argv[])
 			}
 
 			plugInst->prepareToPlay(sampleRate, totalSizeInSamples);
+
+			int numParams = plugInst->getNumParameters();
+			cout << "Num Parameters: " << numParams << endl;
+			for (int p = 0; p < numParams; ++p)
+			{
+				std::cout << "Param " << p << ": " << plugInst->getParameterName(p);
+				if (!plugInst->getParameterLabel(p).isEmpty()) {
+					cout << "(" << plugInst->getParameterLabel(p) << ")";
+				}
+				cout << " = " << plugInst->getParameter(p) << endl;
+			}
+
 			plugInst->processBlock(buffer, midiMessages);
 
 			if (outWavFile.exists()) {
