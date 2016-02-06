@@ -14,6 +14,8 @@
 using std::cout;
 using std::cerr;
 using std::endl;
+using juce::AudioProcessorGraph;
+
 
 //==============================================================================
 int main (int argc, char* argv[])
@@ -78,6 +80,26 @@ int main (int argc, char* argv[])
 				continue;
 			}
 
+			AudioProcessorGraph* graph = new AudioProcessorGraph();
+			graph->setPlayConfigDetails(0, 2, sampleRate, totalSizeInSamples);
+			graph->addNode(plugInst, 1000);
+
+			int AUDIO_IN_ID = 101;
+			int AUDIO_OUT_ID = 102;
+			int MIDI_IN_ID = 103;
+			juce::AudioPluginInstance* audioInNode = new AudioProcessorGraph::AudioGraphIOProcessor(AudioProcessorGraph::AudioGraphIOProcessor::audioInputNode);
+			juce::AudioPluginInstance* audioOutNode = new AudioProcessorGraph::AudioGraphIOProcessor(AudioProcessorGraph::AudioGraphIOProcessor::audioOutputNode);
+			juce::AudioPluginInstance* midiInNode = new AudioProcessorGraph::AudioGraphIOProcessor(AudioProcessorGraph::AudioGraphIOProcessor::midiInputNode);
+			graph->addNode(audioInNode, AUDIO_IN_ID);
+			graph->addNode(audioOutNode, AUDIO_OUT_ID);
+			graph->addNode(midiInNode, MIDI_IN_ID);
+
+			graph->addConnection(AUDIO_IN_ID, 0, 1000, 0);
+			graph->addConnection(AUDIO_IN_ID, 1, 1000, 1);
+			graph->addConnection(MIDI_IN_ID, 0, 1000, 0);
+			graph->addConnection(1000, 0, AUDIO_OUT_ID, 0);
+			graph->addConnection(1000, 1, AUDIO_OUT_ID, 1);
+
 			plugInst->setCurrentProgram(program);
 
 			int numInputChannels = plugInst->getTotalNumInputChannels();
@@ -100,7 +122,8 @@ int main (int argc, char* argv[])
 				midiMessages.addEvent(midiMsg, samplePos);
 			}
 
-			plugInst->prepareToPlay(sampleRate, totalSizeInSamples);
+			graph->releaseResources();
+			graph->prepareToPlay(sampleRate, totalSizeInSamples);
 
 			int numParams = plugInst->getNumParameters();
 			cout << "Num Parameters: " << numParams << endl;
@@ -113,7 +136,7 @@ int main (int argc, char* argv[])
 				cout << " = " << plugInst->getParameter(p) << endl;
 			}
 
-			plugInst->processBlock(buffer, midiMessages);
+			graph->processBlock(buffer, midiMessages);
 
 			if (outWavFile.exists()) {
 				outWavFile.deleteFile();
@@ -130,7 +153,7 @@ int main (int argc, char* argv[])
 				<< (int)writeAudioDataRet << endl;
 
 			delete wavFormatWriter;
-			delete plugInst;
+			//delete plugInst;
 		}
 		else {
 			cerr << "Could not find plugin from file " << plugFile << endl;
