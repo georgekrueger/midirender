@@ -60,14 +60,14 @@ int main (int argc, char* argv[])
 			continue;
 		}
 		else {
-			std::cout << "Found instrument '" << plugFile << "' for track " << i << std::endl;
+			std::cout << "Found plugin file '" << plugFile << "' from track " << i << std::endl;
 		}
 
 		OwnedArray<PluginDescription> results;
 		VSTPluginFormat vstFormat;
 		vstFormat.findAllTypesForFile(results, plugFile);
 		if (results.size() > 0) {
-			std::cout << "Found " << results.size() << " plugin(s) matching file " << plugFile << std::endl;
+			std::cout << "Found " << results.size() << " plugin(s) in file '" << plugFile << "'" << std::endl;
 
 			int secsToRender = 10;
 			double sampleRate = 44100;
@@ -85,6 +85,7 @@ int main (int argc, char* argv[])
 			cout << "----- Plugin Information -----" << endl;
 			cout << "Input channels : " << numInputChannels << endl;
 			cout << "Output channels : " << numOutputChannels << endl;
+			cout << "Num Programs: " << plugInst->getNumPrograms() << endl;
 			cout << "Current program: " << plugInst->getCurrentProgram() << endl;
 
 			int maxChannels = std::max(numInputChannels, numOutputChannels);

@@ -1,6 +1,8 @@
-Microsoft Visual Studio Solution File, Format Version 11.00
-# Visual Studio 2015
-Project("{ABEA2CFC-29C5-4D2A-5C56-E3A2ABF2DF91}") = "midirender", "midirender.vcxproj", "{5AECEE1E-F280-904C-D1D3-4520405ABC95}"
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Express 14 for Windows Desktop
+VisualStudioVersion = 14.0.24720.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "midirender", "midirender.vcxproj", "{5AECEE1E-F280-904C-D1D3-4520405ABC95}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
