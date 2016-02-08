@@ -96,7 +96,7 @@ int main (int argc, char* argv[])
 
 			graph->addConnection(AUDIO_IN_ID, 0, 1000, 0);
 			graph->addConnection(AUDIO_IN_ID, 1, 1000, 1);
-			graph->addConnection(MIDI_IN_ID, 0, 1000, 0);
+			graph->addConnection(MIDI_IN_ID, AudioProcessorGraph::midiChannelIndex, 1000, AudioProcessorGraph::midiChannelIndex);
 			graph->addConnection(1000, 0, AUDIO_OUT_ID, 0);
 			graph->addConnection(1000, 1, AUDIO_OUT_ID, 1);
 
