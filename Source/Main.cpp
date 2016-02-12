@@ -20,13 +20,17 @@ using juce::AudioProcessorGraph;
 //==============================================================================
 int main (int argc, char* argv[])
 {
+	/*
 	if (argc != 3) {
 		cout << "Usage: <prog> <midi input file> <wav output file>" << endl;
 		return 0;
 	}
-
 	File inMidiFile = File(argv[1]);
 	File outWavFile = File(argv[2]);
+	*/
+
+	File inMidiFile = File("C:\\Users\\GeorgeKrueger\\Documents\\GitHub\\pymusic\\out.mid");
+	File outWavFile = File("C:\\Users\\GeorgeKrueger\\Documents\\GitHub\\pymusic\\out.wav");
 
 	FileInputStream fileStream(inMidiFile);
 	juce::MidiFile midiFile;
@@ -71,17 +75,19 @@ int main (int argc, char* argv[])
 		if (results.size() > 0) {
 			std::cout << "Found " << results.size() << " plugin(s) in file '" << plugFile << "'" << std::endl;
 
+			int blockSize = 1024;
 			int secsToRender = 10;
 			double sampleRate = 44100;
-			int totalSizeInSamples = static_cast<int>(44100 * secsToRender);
-			juce::AudioPluginInstance* plugInst = vstFormat.createInstanceFromDescription(*results[0], sampleRate, totalSizeInSamples);
+			int totalSizeInSamples = ((static_cast<int>(44100 * secsToRender) / 1024) + 1) * 1024;
+			cout << "Total samples to render " << totalSizeInSamples << endl;
+			juce::AudioPluginInstance* plugInst = vstFormat.createInstanceFromDescription(*results[0], sampleRate, blockSize);
 			if (!plugInst) {
 				cout << "Failed to load plugin " << plugFile << endl;
 				continue;
 			}
 
 			AudioProcessorGraph* graph = new AudioProcessorGraph();
-			graph->setPlayConfigDetails(0, 2, sampleRate, totalSizeInSamples);
+			graph->setPlayConfigDetails(0, 2, sampleRate, blockSize);
 			graph->addNode(plugInst, 1000);
 
 			int AUDIO_IN_ID = 101;
@@ -110,22 +116,7 @@ int main (int argc, char* argv[])
 			cout << "Num Programs: " << plugInst->getNumPrograms() << endl;
 			cout << "Current program: " << plugInst->getCurrentProgram() << endl;
 
-			int maxChannels = std::max(numInputChannels, numOutputChannels);
-			AudioBuffer<float> buffer(maxChannels, totalSizeInSamples);
-
-			MidiBuffer midiMessages;
-			for (int j = 0; j < msgSeq->getNumEvents(); ++j)
-			{
-				MidiMessageSequence::MidiEventHolder* midiEventHolder = msgSeq->getEventPointer(j);
-				MidiMessage midiMsg = midiEventHolder->message;
-				int samplePos = static_cast<int>(midiMsg.getTimeStamp() * sampleRate);
-				midiMessages.addEvent(midiMsg, samplePos);
-			}
-
-			graph->releaseResources();
-			graph->prepareToPlay(sampleRate, totalSizeInSamples);
-
-			int numParams = plugInst->getNumParameters();
+			/*int numParams = plugInst->getNumParameters();
 			cout << "Num Parameters: " << numParams << endl;
 			for (int p = 0; p < numParams; ++p)
 			{
@@ -134,9 +125,53 @@ int main (int argc, char* argv[])
 					cout << "(" << plugInst->getParameterLabel(p) << ")";
 				}
 				cout << " = " << plugInst->getParameter(p) << endl;
-			}
+			}*/
 
-			graph->processBlock(buffer, midiMessages);
+			int maxChannels = std::max(numInputChannels, numOutputChannels);
+			AudioBuffer<float> entireAudioBuffer(maxChannels, totalSizeInSamples);
+			entireAudioBuffer.clear();
+			unsigned int midiSeqPos = 0;
+
+			graph->releaseResources();
+			graph->prepareToPlay(sampleRate, blockSize);
+
+			cout << "Num midi events: " << msgSeq->getNumEvents() << endl;
+
+			// Render the audio in blocks
+			for (int t = 0; t < totalSizeInSamples; t += blockSize)
+			{
+				//cout << "processing block " << t << " to " << t + blockSize << endl;
+				MidiBuffer midiBuffer;
+				for (int j = midiSeqPos; j < msgSeq->getNumEvents(); ++j)
+				{
+					MidiMessageSequence::MidiEventHolder* midiEventHolder = msgSeq->getEventPointer(j);
+					MidiMessage midiMsg = midiEventHolder->message;
+					int samplePos = static_cast<int>(midiMsg.getTimeStamp() * sampleRate);
+					if (samplePos >= t && samplePos < t + blockSize) {
+						if (midiMsg.isNoteOnOrOff()) {
+							if (midiMsg.isNoteOn()) {
+								cout << "note on event (" << midiMsg.getNoteNumber() << ") at " << samplePos << "(" << midiMsg.getTimeStamp() << "s) bufferpos=" << (samplePos - t) << endl;
+							}
+							else if (midiMsg.isNoteOff()) {
+								cout << "note off event (" << midiMsg.getNoteNumber() << ") at " << samplePos << "(" << midiMsg.getTimeStamp() << "s) bufferpos=" << (samplePos - t) << endl;
+							}
+							midiBuffer.addEvent(midiMsg, samplePos - t);
+						}
+						midiSeqPos++;
+					}
+					else {
+						break;
+					}
+				}
+
+				AudioBuffer<float> blockAudioBuffer(entireAudioBuffer.getNumChannels(), blockSize);
+				blockAudioBuffer.clear();
+				graph->processBlock(blockAudioBuffer, midiBuffer);
+
+				for (int ch = 0; ch < entireAudioBuffer.getNumChannels(); ++ch) {
+					entireAudioBuffer.addFrom(ch, t, blockAudioBuffer, ch, 0, blockSize);
+				}
+			}
 
 			if (outWavFile.exists()) {
 				outWavFile.deleteFile();
@@ -146,14 +181,13 @@ int main (int argc, char* argv[])
 			StringPairArray metadataValues;
 			juce::AudioFormatWriter* wavFormatWriter = wavFormat.createWriterFor(
 				fileOutputStream, sampleRate, 2, 16, metadataValues, 0);
-			bool writeAudioDataRet = wavFormatWriter->writeFromAudioSampleBuffer(buffer, 0, buffer.getNumSamples());
+			bool writeAudioDataRet = wavFormatWriter->writeFromAudioSampleBuffer(entireAudioBuffer, 0, entireAudioBuffer.getNumSamples());
 			wavFormatWriter->flush();
 
 			cout << "Done writing to output file " << outWavFile.getFileName() << " . Write return value: "
 				<< (int)writeAudioDataRet << endl;
 
 			delete wavFormatWriter;
-			//delete plugInst;
 		}
 		else {
 			cerr << "Could not find plugin from file " << plugFile << endl;
