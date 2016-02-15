@@ -16,6 +16,19 @@ using std::cerr;
 using std::endl;
 using juce::AudioProcessorGraph;
 
+class MyAudioPlayHead : public juce::AudioPlayHead
+{
+public:
+	virtual bool getCurrentPosition(CurrentPositionInfo& result)
+	{
+		result = posInfo;
+		return true;
+	}
+
+	CurrentPositionInfo posInfo;
+};
+
+MyAudioPlayHead playHead;
 
 //==============================================================================
 int main (int argc, char* argv[])
@@ -38,6 +51,13 @@ int main (int argc, char* argv[])
 	int numTracks = midiFile.getNumTracks();
 	midiFile.convertTimestampTicksToSeconds();
 	std::cout << "Opened midi file: " << inMidiFile.getFileName() << " Tracks: " << numTracks << std::endl;;
+
+	playHead.posInfo.bpm = 120;
+	playHead.posInfo.isPlaying = true;
+	playHead.posInfo.timeInSamples = 0;
+	playHead.posInfo.timeInSeconds = 0;
+	playHead.posInfo.timeSigNumerator = 4;
+	playHead.posInfo.timeSigDenominator = 4;
 
 	for (int i = 0; i < numTracks; ++i)
 	{
@@ -88,6 +108,7 @@ int main (int argc, char* argv[])
 
 			AudioProcessorGraph* graph = new AudioProcessorGraph();
 			graph->setPlayConfigDetails(0, 2, sampleRate, blockSize);
+			graph->setPlayHead(&playHead);
 			graph->addNode(plugInst, 1000);
 
 			int AUDIO_IN_ID = 101;
@@ -163,6 +184,9 @@ int main (int argc, char* argv[])
 						break;
 					}
 				}
+
+				playHead.posInfo.timeInSamples = t;
+				playHead.posInfo.timeInSeconds = t / sampleRate;
 
 				AudioBuffer<float> blockAudioBuffer(entireAudioBuffer.getNumChannels(), blockSize);
 				blockAudioBuffer.clear();
