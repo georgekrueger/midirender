@@ -33,17 +33,15 @@ MyAudioPlayHead playHead;
 //==============================================================================
 int main (int argc, char* argv[])
 {
-	/*
 	if (argc != 3) {
 		cout << "Usage: <prog> <midi input file> <wav output file>" << endl;
 		return 0;
 	}
 	File inMidiFile = File(argv[1]);
 	File outWavFile = File(argv[2]);
-	*/
 
-	File inMidiFile = File("C:\\Users\\GeorgeKrueger\\Documents\\GitHub\\pymusic\\out.mid");
-	File outWavFile = File("C:\\Users\\GeorgeKrueger\\Documents\\GitHub\\pymusic\\out.wav");
+	//File inMidiFile = File("C:\\Users\\GeorgeKrueger\\Documents\\GitHub\\pymusic\\out.mid");
+	//File outWavFile = File("C:\\Users\\GeorgeKrueger\\Documents\\GitHub\\pymusic\\out.wav");
 
 	FileInputStream fileStream(inMidiFile);
 	juce::MidiFile midiFile;
@@ -82,8 +80,10 @@ int main (int argc, char* argv[])
 		}
 
 		if (plugFile.isEmpty()) {
-			std::cerr << "Skipping track " << i << ". No instrument found." << std::endl;
-			continue;
+			plugFile = "C:\\VST\\helm.dll";
+			std::cout << "No plug found for track. Defaulting to: " << plugFile << std::endl;
+			//std::cerr << "Skipping track " << i << ". No instrument found." << std::endl;
+			//continue;
 		}
 		else {
 			std::cout << "Found plugin file '" << plugFile << "' from track " << i << std::endl;
