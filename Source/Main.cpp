@@ -61,6 +61,7 @@ int main (int argc, char* argv[])
 	{
 		const juce::MidiMessageSequence* msgSeq = midiFile.getTrack(i);
 
+		double trackLengthSeconds = 0;
 		String plugFile = "";
 		int program = 0;
 		for (int j = 0; j < msgSeq->getNumEvents(); ++j)
@@ -74,9 +75,18 @@ int main (int argc, char* argv[])
 				String instrName((char*)instrChars, instrLength);
 				plugFile = instrName;
 			}
-			else if (midiMsg.isProgramChange()) {
-				program = midiMsg.getProgramChangeNumber();
+			if (midiMsg.isMetaEvent() && midiMsg.isEndOfTrackMetaEvent()) {
+				//int oetDataLength = midiMsg.getMetaEventLength();
+				//const uint8* oetData = midiMsg.getMetaEventData();
+				//std::cout << "Found end of track event data size: " << oetDataLength << " data: " << oetData << std::endl;
+				trackLengthSeconds = midiMsg.getTimeStamp();
+				std::cout << "Track length in seconds: " << trackLengthSeconds << std::endl;
 			}
+		}
+
+		if (trackLengthSeconds == 0) {
+			std::cerr << "Skipping track " << i << " since it has zero length" << std::endl;
+			continue;
 		}
 
 		if (plugFile.isEmpty()) {
@@ -96,9 +106,8 @@ int main (int argc, char* argv[])
 			std::cout << "Found " << results.size() << " plugin(s) in file '" << plugFile << "'" << std::endl;
 
 			int blockSize = 1024;
-			int secsToRender = 10;
 			double sampleRate = 44100;
-			int totalSizeInSamples = ((static_cast<int>(44100 * secsToRender) / 1024) + 1) * 1024;
+			int totalSizeInSamples = ((static_cast<int>(44100 * trackLengthSeconds) / 1024) + 1) * 1024;
 			cout << "Total samples to render " << totalSizeInSamples << endl;
 			juce::AudioPluginInstance* plugInst = vstFormat.createInstanceFromDescription(*results[0], sampleRate, blockSize);
 			if (!plugInst) {
@@ -177,6 +186,10 @@ int main (int argc, char* argv[])
 								cout << "note off event (" << midiMsg.getNoteNumber() << ") at " << samplePos << "(" << midiMsg.getTimeStamp() << "s) bufferpos=" << (samplePos - t) << endl;
 							}
 							midiBuffer.addEvent(midiMsg, samplePos - t);
+						}
+						else if (midiMsg.isProgramChange()) {
+							program = midiMsg.getProgramChangeNumber();
+							plugInst->setCurrentProgram(program);
 						}
 						midiSeqPos++;
 					}
