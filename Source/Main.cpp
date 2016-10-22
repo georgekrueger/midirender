@@ -15,6 +15,7 @@ using std::cout;
 using std::cerr;
 using std::endl;
 using juce::AudioProcessorGraph;
+using AudioGraphIOProcessor = juce::AudioProcessorGraph::AudioGraphIOProcessor;
 
 class MyAudioPlayHead : public juce::AudioPlayHead
 {
@@ -123,9 +124,9 @@ int main (int argc, char* argv[])
 			int AUDIO_IN_ID = 101;
 			int AUDIO_OUT_ID = 102;
 			int MIDI_IN_ID = 103;
-			juce::AudioPluginInstance* audioInNode = new AudioProcessorGraph::AudioGraphIOProcessor(AudioProcessorGraph::AudioGraphIOProcessor::audioInputNode);
-			juce::AudioPluginInstance* audioOutNode = new AudioProcessorGraph::AudioGraphIOProcessor(AudioProcessorGraph::AudioGraphIOProcessor::audioOutputNode);
-			juce::AudioPluginInstance* midiInNode = new AudioProcessorGraph::AudioGraphIOProcessor(AudioProcessorGraph::AudioGraphIOProcessor::midiInputNode);
+			juce::AudioPluginInstance* audioInNode = new AudioGraphIOProcessor(AudioGraphIOProcessor::audioInputNode);
+			juce::AudioPluginInstance* audioOutNode = new AudioGraphIOProcessor(AudioGraphIOProcessor::audioOutputNode);
+			juce::AudioPluginInstance* midiInNode = new AudioGraphIOProcessor(AudioGraphIOProcessor::midiInputNode);
 			graph->addNode(audioInNode, AUDIO_IN_ID);
 			graph->addNode(audioOutNode, AUDIO_OUT_ID);
 			graph->addNode(midiInNode, MIDI_IN_ID);
@@ -146,7 +147,7 @@ int main (int argc, char* argv[])
 			cout << "Num Programs: " << plugInst->getNumPrograms() << endl;
 			cout << "Current program: " << plugInst->getCurrentProgram() << endl;
 
-			/*int numParams = plugInst->getNumParameters();
+			int numParams = plugInst->getNumParameters();
 			cout << "Num Parameters: " << numParams << endl;
 			for (int p = 0; p < numParams; ++p)
 			{
@@ -155,7 +156,8 @@ int main (int argc, char* argv[])
 					cout << "(" << plugInst->getParameterLabel(p) << ")";
 				}
 				cout << " = " << plugInst->getParameter(p) << endl;
-			}*/
+			}
+			cout << "-----------------------------" << endl;
 
 			int maxChannels = std::max(numInputChannels, numOutputChannels);
 			AudioBuffer<float> entireAudioBuffer(maxChannels, totalSizeInSamples);
